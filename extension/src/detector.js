@@ -6,7 +6,7 @@
 const PATTERNS = {
   // メールアドレス
   EMAIL: {
-    pattern: /[\w.-]+@[\w.-]+\.\w+/g,
+    pattern: /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g,
     label: 'メールアドレス',
     score: 1.0
   },
@@ -28,6 +28,13 @@ const PATTERNS = {
     pattern: /〒?\d{3}-?\d{4}/g,
     label: '郵便番号',
     score: 0.9
+  },
+
+  // 住所（都道府県+市区町村+番地など）
+  JP_ADDRESS: {
+    pattern: /(?:北海道|青森県|岩手県|宮城県|秋田県|山形県|福島県|茨城県|栃木県|群馬県|埼玉県|千葉県|東京都|神奈川県|新潟県|富山県|石川県|福井県|山梨県|長野県|岐阜県|静岡県|愛知県|三重県|滋賀県|京都府|大阪府|兵庫県|奈良県|和歌山県|鳥取県|島根県|岡山県|広島県|山口県|徳島県|香川県|愛媛県|高知県|福岡県|佐賀県|長崎県|熊本県|大分県|宮崎県|鹿児島県|沖縄県)\S{1,15}?(?:市|区|町|村)\S{1,30}?\d{1,4}\S{0,10}/g,
+    label: '住所',
+    score: 0.8
   },
 
   // 金額
@@ -107,6 +114,13 @@ const PATTERNS = {
     score: 0.8
   },
 
+  // 銀行口座番号（口座番号 7桁）
+  JP_BANK_ACCOUNT: {
+    pattern: /(?:口座番号|口座|口座No\.?|Account)\s*[:：]?\s*\d{7}/gi,
+    label: '銀行口座',
+    score: 0.85
+  },
+
   // IPアドレス
   IP_ADDRESS: {
     pattern: /\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/g,
@@ -121,6 +135,15 @@ const HONORIFIC_DENY_LIST = new Set([
   '関係者様', '責任者様', '代表者様', '管理者様', '窓口様',
   '皆さん', '皆さま', 'みなさま', 'お客さん', 'お客さま'
 ]);
+
+const VALIDATORS = {
+  CREDIT_CARD: isValidCreditCard,
+  IP_ADDRESS: isValidIpAddress,
+  JP_BANK_ACCOUNT: isValidJpBankAccount,
+  JP_MYNUMBER: isValidMyNumber,
+  JP_PHONE: isValidJpPhone,
+  JP_MOBILE: isValidJpMobile
+};
 
 /**
  * テキストから機密情報を検出
@@ -138,6 +161,11 @@ function detectPII(text, customDictionary = []) {
 
       // 敬称の除外チェック
       if (type.startsWith('JP_NAME_') && HONORIFIC_DENY_LIST.has(matchedText)) {
+        continue;
+      }
+
+      const validator = VALIDATORS[type];
+      if (validator && !validator(matchedText)) {
         continue;
       }
 
@@ -232,6 +260,82 @@ function maskText(text, detections) {
  */
 function escapeRegex(string) {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function isValidJpPhone(value) {
+  const digits = normalizeDigits(value);
+  if (!digits.startsWith('0')) return false;
+  return digits.length === 10 || digits.length === 11;
+}
+
+function isValidJpMobile(value) {
+  const digits = normalizeDigits(value);
+  return digits.length === 11 && /^(070|080|090)/.test(digits);
+}
+
+function isValidCreditCard(value) {
+  const digits = normalizeDigits(value);
+  if (digits.length < 13 || digits.length > 19) return false;
+  return luhnCheck(digits);
+}
+
+function luhnCheck(digits) {
+  let sum = 0;
+  let shouldDouble = false;
+
+  for (let i = digits.length - 1; i >= 0; i -= 1) {
+    let digit = Number(digits[i]);
+    if (Number.isNaN(digit)) return false;
+
+    if (shouldDouble) {
+      digit *= 2;
+      if (digit > 9) digit -= 9;
+    }
+
+    sum += digit;
+    shouldDouble = !shouldDouble;
+  }
+
+  return sum % 10 === 0;
+}
+
+function isValidIpAddress(value) {
+  const parts = value.split('.');
+  if (parts.length !== 4) return false;
+  return parts.every(part => {
+    if (!/^\d{1,3}$/.test(part)) return false;
+    const num = Number(part);
+    return num >= 0 && num <= 255;
+  });
+}
+
+function isValidJpBankAccount(value) {
+  const digits = normalizeDigits(value);
+  return digits.length === 7;
+}
+
+function isValidMyNumber(value) {
+  const digits = normalizeDigits(value);
+  if (digits.length !== 12) return false;
+  const body = digits.slice(0, 11).split('').map(Number);
+  const checkDigit = Number(digits[11]);
+  if (body.some(Number.isNaN) || Number.isNaN(checkDigit)) return false;
+  return calculateMyNumberCheckDigit(body) === checkDigit;
+}
+
+function calculateMyNumberCheckDigit(bodyDigits) {
+  let sum = 0;
+  for (let i = 0; i < bodyDigits.length; i += 1) {
+    const digit = bodyDigits[bodyDigits.length - 1 - i];
+    const weight = 2 + (i % 6);
+    sum += digit * weight;
+  }
+  const remainder = sum % 11;
+  return (11 - remainder) % 11;
+}
+
+function normalizeDigits(value) {
+  return value.replace(/\D/g, '');
 }
 
 // エクスポート
