@@ -23,17 +23,5 @@
   },
   "background": {
     "service_worker": "src/background.js"
-  },
-  "content_scripts": [
-    {
-      "matches": [
-        "https://chat.openai.com/*",
-        "https://chatgpt.com/*",
-        "https://claude.ai/*",
-        "https://gemini.google.com/*"
-      ],
-      "js": ["src/content.js"],
-      "css": ["src/content.css"]
-    }
-  ]
+  }
 }
