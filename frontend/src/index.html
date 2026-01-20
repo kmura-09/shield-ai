@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' http://127.0.0.1:8765">
+  <title>ShieldAI - 機密情報フィルタ</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <h1 class="title">ShieldAI</h1>
+      <span class="subtitle">機密情報フィルタ</span>
+      <div class="status" id="status">
+        <span class="status-dot" id="statusDot"></span>
+        <span id="statusText">接続中...</span>
+      </div>
+    </header>
+
+    <main class="main">
+      <section class="input-section">
+        <div class="section-header">
+          <label for="inputText">入力テキスト</label>
+          <button class="btn btn-small" id="pasteBtn">貼り付け</button>
+        </div>
+        <textarea
+          id="inputText"
+          placeholder="テキストを入力またはペースト..."
+          rows="8"
+        ></textarea>
+      </section>
+
+      <div class="actions">
+        <button class="btn btn-primary" id="checkBtn">
+          <span class="btn-icon">🔍</span>
+          チェック
+        </button>
+        <label class="checkbox-label">
+          <input type="checkbox" id="useLLM">
+          LLM検出を使用（GPU推奨）
+        </label>
+      </div>
+
+      <section class="results-section" id="resultsSection" style="display: none;">
+        <div class="detections" id="detections">
+          <h3>検出結果</h3>
+          <div class="detection-list" id="detectionList"></div>
+          <div class="processing-info" id="processingInfo"></div>
+        </div>
+
+        <div class="masked-section">
+          <div class="section-header">
+            <label>マスク済みテキスト</label>
+            <button class="btn btn-small btn-success" id="copyMaskedBtn">コピー</button>
+          </div>
+          <div class="masked-text" id="maskedText"></div>
+        </div>
+      </section>
+
+      <section class="no-detection" id="noDetection" style="display: none;">
+        <div class="no-detection-icon">✓</div>
+        <p>機密情報は検出されませんでした</p>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-info">
+        <span>ローカル処理 - データは外部に送信されません</span>
+      </div>
+    </footer>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>
