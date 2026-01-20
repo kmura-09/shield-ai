@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "ShieldAI - 機密情報フィルタ",
+  "version": "1.0.0",
+  "description": "ChatGPT/Claude送信前に機密情報を検出・マスク。ローカル処理でデータ外部送信なし。",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "contextMenus"
+  ],
+  "action": {
+    "default_popup": "src/popup.html"
+  },
+  "background": {
+    "service_worker": "src/background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://chat.openai.com/*",
+        "https://chatgpt.com/*",
+        "https://claude.ai/*"
+      ],
+      "js": ["src/content.js"],
+      "css": ["src/content.css"]
+    }
+  ]
+}

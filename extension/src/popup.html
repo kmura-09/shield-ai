@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ShieldAI</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <h1>ShieldAI</h1>
+      <span class="badge">ローカル処理</span>
+    </header>
+
+    <nav class="tabs">
+      <button class="tab active" data-tab="check">チェック</button>
+      <button class="tab" data-tab="dictionary">辞書</button>
+    </nav>
+
+    <!-- チェックタブ -->
+    <section id="check-tab" class="tab-content active">
+      <div class="input-section">
+        <textarea id="inputText" placeholder="テキストを貼り付けてチェック..."></textarea>
+        <button id="checkBtn" class="btn primary">チェック</button>
+      </div>
+
+      <div id="results" class="results" style="display: none;">
+        <div class="result-header">
+          <span id="resultCount">0件検出</span>
+        </div>
+        <div id="detectionList" class="detection-list"></div>
+        <div class="masked-section">
+          <label>マスク済み:</label>
+          <div id="maskedText" class="masked-text"></div>
+          <button id="copyBtn" class="btn success">コピー</button>
+        </div>
+      </div>
+
+      <div id="noResults" class="no-results" style="display: none;">
+        <span class="check-icon">✓</span>
+        <p>機密情報は検出されませんでした</p>
+      </div>
+    </section>
+
+    <!-- 辞書タブ -->
+    <section id="dictionary-tab" class="tab-content">
+      <div class="dict-add">
+        <input type="text" id="dictValue" placeholder="登録する単語">
+        <select id="dictCategory">
+          <option value="companies">会社名</option>
+          <option value="persons">個人名</option>
+          <option value="projects">プロジェクト名</option>
+          <option value="custom">その他</option>
+        </select>
+        <button id="addDictBtn" class="btn primary">追加</button>
+      </div>
+
+      <div class="dict-list" id="dictList">
+        <p class="empty-message">登録された単語はありません</p>
+      </div>
+
+      <div class="dict-actions">
+        <button id="exportBtn" class="btn">エクスポート</button>
+        <button id="importBtn" class="btn">インポート</button>
+        <input type="file" id="importFile" accept=".json" style="display: none;">
+      </div>
+    </section>
+
+    <footer class="footer">
+      <small>データは外部に送信されません</small>
+    </footer>
+  </div>
+
+  <script src="detector.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
