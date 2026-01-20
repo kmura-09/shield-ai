@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "ShieldAI - 機密情報フィルタ",
   "version": "0.1.0",
-  "description": "ChatGPT/Claude送信前に機密情報を検出・マスク。ローカル処理でデータ外部送信なし。",
+  "description": "AIに送る前にちょっと待って！メールや電話番号、うっかり送信の防止をサポート。完全ローカル処理で安心。",
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
