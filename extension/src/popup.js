@@ -33,6 +33,14 @@ let dictionary = [];
 document.addEventListener('DOMContentLoaded', async () => {
   await loadDictionary();
   renderDictionary();
+
+  // 右クリックメニューから選択テキストがあれば自動チェック
+  const result = await chrome.storage.local.get(['selectedText']);
+  if (result.selectedText) {
+    inputText.value = result.selectedText;
+    await chrome.storage.local.remove('selectedText');
+    checkBtn.click();
+  }
 });
 
 // タブ切り替え
