@@ -56,4 +56,4 @@ https://github.com/kmura-09/shield-ai
 日本語
 
 ## バージョン
-0.9.0
+0.1.0
