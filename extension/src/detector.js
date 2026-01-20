@@ -23,11 +23,17 @@ const PATTERNS = {
     score: 0.85
   },
 
-  // 郵便番号
-  JP_POSTAL: {
-    pattern: /〒?\d{3}-?\d{4}/g,
+  // 郵便番号（〒付きのみ高信頼度）
+  JP_POSTAL_MARK: {
+    pattern: /〒\d{3}-?\d{4}/g,
     label: '郵便番号',
-    score: 0.9
+    score: 0.95
+  },
+  // 郵便番号（〒なし - 低信頼度）
+  JP_POSTAL: {
+    pattern: /\d{3}-\d{4}/g,
+    label: '郵便番号',
+    score: 0.5
   },
 
   // 住所（都道府県+市区町村+番地など）
@@ -35,6 +41,12 @@ const PATTERNS = {
     pattern: /(?:北海道|青森県|岩手県|宮城県|秋田県|山形県|福島県|茨城県|栃木県|群馬県|埼玉県|千葉県|東京都|神奈川県|新潟県|富山県|石川県|福井県|山梨県|長野県|岐阜県|静岡県|愛知県|三重県|滋賀県|京都府|大阪府|兵庫県|奈良県|和歌山県|鳥取県|島根県|岡山県|広島県|山口県|徳島県|香川県|愛媛県|高知県|福岡県|佐賀県|長崎県|熊本県|大分県|宮崎県|鹿児島県|沖縄県)\S{1,15}?(?:市|区|町|村)\S{1,30}?\d{1,4}\S{0,10}/g,
     label: '住所',
     score: 0.8
+  },
+  // 住所（市区から始まるパターン）
+  JP_ADDRESS_CITY: {
+    pattern: /(?:札幌|仙台|さいたま|千葉|横浜|川崎|相模原|新潟|静岡|浜松|名古屋|京都|大阪|堺|神戸|岡山|広島|北九州|福岡|熊本)市[ぁ-んァ-ヶー\u4e00-\u9faf]{1,10}区[ぁ-んァ-ヶー\u4e00-\u9faf]{1,20}[\d\-]+[\d号]?/g,
+    label: '住所',
+    score: 0.75
   },
 
   // 金額
@@ -114,11 +126,12 @@ const PATTERNS = {
     score: 0.8
   },
 
-  // 銀行口座番号（口座番号 7桁）
+  // 銀行口座番号（口座番号 7桁）- extractDigits で番号部分のみ抽出
   JP_BANK_ACCOUNT: {
-    pattern: /(?:口座番号|口座|口座No\.?|Account)\s*[:：]?\s*\d{7}/gi,
+    pattern: /(?:口座番号|口座|口座No\.?|Account)\s*[:：]?\s*(?:普通|当座|貯蓄)?\s*(\d{7})/gi,
     label: '銀行口座',
-    score: 0.85
+    score: 0.95,
+    extractGroup: 1
   },
 
   // IPアドレス
@@ -140,7 +153,7 @@ const VALIDATORS = {
   CREDIT_CARD: isValidCreditCard,
   IP_ADDRESS: isValidIpAddress,
   JP_BANK_ACCOUNT: isValidJpBankAccount,
-  JP_MYNUMBER: isValidMyNumber,
+  // JP_MYNUMBER: セキュリティ目的のため、チェックディジット検証なしで検出
   JP_PHONE: isValidJpPhone,
   JP_MOBILE: isValidJpMobile
 };
@@ -157,7 +170,16 @@ function detectPII(text, customDictionary = []) {
     let match;
 
     while ((match = regex.exec(text)) !== null) {
-      const matchedText = match[0];
+      let matchedText = match[0];
+      let startIndex = match.index;
+
+      // extractGroup指定がある場合、キャプチャグループの位置を使用
+      if (config.extractGroup && match[config.extractGroup]) {
+        const groupText = match[config.extractGroup];
+        const groupOffset = match[0].indexOf(groupText);
+        matchedText = groupText;
+        startIndex = match.index + groupOffset;
+      }
 
       // 敬称の除外チェック
       if (type.startsWith('JP_NAME_') && HONORIFIC_DENY_LIST.has(matchedText)) {
@@ -172,8 +194,8 @@ function detectPII(text, customDictionary = []) {
       detections.push({
         type: type,
         text: matchedText,
-        start: match.index,
-        end: match.index + matchedText.length,
+        start: startIndex,
+        end: startIndex + matchedText.length,
         score: config.score,
         label: config.label,
         method: 'pattern'
