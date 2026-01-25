@@ -21,6 +21,13 @@ const exportBtn = document.getElementById('exportBtn');
 const importBtn = document.getElementById('importBtn');
 const importFile = document.getElementById('importFile');
 
+// 除外リスト関連
+const excludeValue = document.getElementById('excludeValue');
+const addExcludeBtn = document.getElementById('addExcludeBtn');
+const excludeListEl = document.getElementById('excludeList');
+const modeBtns = document.querySelectorAll('.mode-btn');
+const dictSections = document.querySelectorAll('.dict-section');
+
 // タブ
 const tabs = document.querySelectorAll('.tab');
 const tabContents = document.querySelectorAll('.tab-content');
@@ -28,11 +35,14 @@ const tabContents = document.querySelectorAll('.tab-content');
 // 状態
 let currentMaskedText = '';
 let dictionary = [];
+let excludeList = [];
 
 // 初期化
 document.addEventListener('DOMContentLoaded', async () => {
   await loadDictionary();
+  await loadExcludeList();
   renderDictionary();
+  renderExcludeList();
 
   // 右クリックメニューから選択テキストがあれば自動チェック
   const result = await chrome.storage.local.get(['selectedText']);
@@ -54,12 +64,23 @@ tabs.forEach(tab => {
   });
 });
 
+// 辞書内モード切り替え（マスク対象 / 除外リスト）
+modeBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    modeBtns.forEach(b => b.classList.remove('active'));
+    dictSections.forEach(s => s.classList.remove('active'));
+
+    btn.classList.add('active');
+    document.getElementById(`${btn.dataset.mode}-section`).classList.add('active');
+  });
+});
+
 // チェック実行
 checkBtn.addEventListener('click', () => {
   const text = inputText.value.trim();
   if (!text) return;
 
-  const detections = detectPII(text, dictionary);
+  const detections = detectPII(text, dictionary, excludeList);
 
   if (detections.length === 0) {
     results.style.display = 'none';
@@ -171,9 +192,71 @@ async function loadDictionary() {
   dictionary = result.dictionary || [];
 }
 
+// 除外リスト追加
+addExcludeBtn.addEventListener('click', async () => {
+  const value = excludeValue.value.trim();
+  if (!value) return;
+
+  // 重複チェック
+  if (excludeList.includes(value)) {
+    alert('既に登録されています');
+    return;
+  }
+
+  excludeList.push(value);
+  await saveExcludeList();
+  renderExcludeList();
+  excludeValue.value = '';
+});
+
+// 除外リスト削除
+async function deleteExcludeEntry(value) {
+  excludeList = excludeList.filter(e => e !== value);
+  await saveExcludeList();
+  renderExcludeList();
+}
+
+// 除外リスト表示
+function renderExcludeList() {
+  if (excludeList.length === 0) {
+    excludeListEl.innerHTML = '<p class="empty-message">登録された単語はありません</p>';
+    return;
+  }
+
+  excludeListEl.innerHTML = excludeList.map(entry => `
+    <div class="dict-item">
+      <div class="info">
+        <span class="value">${escapeHtml(entry)}</span>
+      </div>
+      <button class="delete-btn" data-value="${escapeHtml(entry)}">削除</button>
+    </div>
+  `).join('');
+
+  // 削除ボタンイベント
+  excludeListEl.querySelectorAll('.delete-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      deleteExcludeEntry(btn.dataset.value);
+    });
+  });
+}
+
+// 除外リスト保存
+async function saveExcludeList() {
+  await chrome.storage.local.set({ excludeList: excludeList });
+}
+
+// 除外リスト読み込み
+async function loadExcludeList() {
+  const result = await chrome.storage.local.get(['excludeList']);
+  excludeList = result.excludeList || [];
+}
+
 // エクスポート
 exportBtn.addEventListener('click', () => {
-  const data = JSON.stringify({ entries: dictionary }, null, 2);
+  const data = JSON.stringify({
+    entries: dictionary,
+    excludeList: excludeList
+  }, null, 2);
   const blob = new Blob([data], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
 
@@ -198,12 +281,20 @@ importFile.addEventListener('change', async (e) => {
     const text = await file.text();
     const data = JSON.parse(text);
 
+    let importCount = 0;
     if (data.entries && Array.isArray(data.entries)) {
       dictionary = data.entries;
       await saveDictionary();
       renderDictionary();
-      alert(`${dictionary.length}件インポートしました`);
+      importCount += dictionary.length;
     }
+    if (data.excludeList && Array.isArray(data.excludeList)) {
+      excludeList = data.excludeList;
+      await saveExcludeList();
+      renderExcludeList();
+      importCount += excludeList.length;
+    }
+    alert(`${importCount}件インポートしました`);
   } catch (err) {
     alert('インポートに失敗しました');
   }

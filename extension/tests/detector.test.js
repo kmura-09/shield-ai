@@ -113,6 +113,82 @@ function assertIncludesText(detections, expectedText) {
   assert.ok(names.some(n => n.text === '鈴木氏'));
 })();
 
+// 挨拶・慣用表現（誤検知しないこと）
+(() => {
+  const greetings = [
+    'お疲れ様です。本日もよろしくお願いします。',
+    'ご苦労様でした。',
+    'いつもお世話様です。',
+    'お互い様ですね。',
+    'おかげ様で順調です。',
+    'お疲れさん！今日も頑張ったね。',
+    'ご馳走様でした。美味しかったです。',
+    'お待ち様でした。',
+    'お陰様で元気にしております。',
+    'ご愁傷様です。',
+    // 表記ゆれ
+    'おつかれ様です。',
+    'お疲れさまです。',
+    'おつかれさまです。',
+    'オツカレ様でした。',
+    'おせわ様です。',
+    'ごくろう様です。',
+    'ごちそう様でした。'
+  ];
+  for (const text of greetings) {
+    const detections = detectPII(text);
+    const names = detections.filter(d => d.type.startsWith('JP_NAME_'));
+    assert.strictEqual(names.length, 0, `Greeting should not be detected as name: "${text}"`);
+  }
+})();
+
+// 神仏・王族等の表現（誤検知しないこと）
+(() => {
+  const expressions = [
+    '神様に祈りを捧げる。',
+    '仏様のご加護がありますように。',
+    'ご先祖様を大切に。',
+    '王様と王妃様が来られた。',
+    'お姫様みたいなドレス。',
+    'お地蔵さんにお参りした。',
+    'お稲荷さんの祠がある。'
+  ];
+  for (const text of expressions) {
+    const detections = detectPII(text);
+    const names = detections.filter(d => d.type.startsWith('JP_NAME_'));
+    assert.strictEqual(names.length, 0, `Common expression should not be detected: "${text}"`);
+  }
+})();
+
+// 役職・立場を表す敬称（誤検知しないこと）
+(() => {
+  const roleExpressions = [
+    '担当者様にお伝えください。',
+    '店員さんに聞いてみよう。',
+    '運転手さん、駅までお願いします。',
+    '社長様がお見えです。',
+    '奥様によろしくお伝えください。',
+    '旦那さんはお元気ですか。',
+    '赤ちゃんが生まれました。',
+    'お嬢さんは何歳ですか。'
+  ];
+  for (const text of roleExpressions) {
+    const detections = detectPII(text);
+    const names = detections.filter(d => d.type.startsWith('JP_NAME_'));
+    assert.strictEqual(names.length, 0, `Role expression should not be detected: "${text}"`);
+  }
+})();
+
+// 挨拶と実名が混在するケース（実名のみ検出されるべき）
+(() => {
+  const text = 'お疲れ様です。佐藤様、本日の会議についてご連絡します。';
+  const detections = detectPII(text);
+  const names = detections.filter(d => d.type.startsWith('JP_NAME_'));
+  // お疲れ様は除外され、佐藤様のみ検出
+  assert.strictEqual(names.length, 1, 'Only real name should be detected');
+  assert.ok(names.some(n => n.text === '佐藤様'));
+})();
+
 // 複合テスト（実際のビジネスメール風）
 (() => {
   const text = `株式会社テクノボーイ

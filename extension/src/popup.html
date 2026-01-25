@@ -45,20 +45,39 @@
 
     <!-- 辞書タブ -->
     <section id="dictionary-tab" class="tab-content">
-      <p class="dict-description">マスク対象の単語を登録（取引先名、担当者名など）</p>
-      <div class="dict-add">
-        <input type="text" id="dictValue" placeholder="マスクしたい単語">
-        <select id="dictCategory">
-          <option value="companies">会社名</option>
-          <option value="persons">個人名</option>
-          <option value="projects">プロジェクト名</option>
-          <option value="custom">その他</option>
-        </select>
-        <button id="addDictBtn" class="btn primary">追加</button>
+      <div class="dict-mode-toggle">
+        <button class="mode-btn active" data-mode="mask">マスク対象</button>
+        <button class="mode-btn" data-mode="exclude">除外リスト</button>
       </div>
 
-      <div class="dict-list" id="dictList">
-        <p class="empty-message">登録された単語はありません</p>
+      <!-- マスク対象 -->
+      <div id="mask-section" class="dict-section active">
+        <p class="dict-description">マスク対象の単語を登録（取引先名、担当者名など）</p>
+        <div class="dict-add">
+          <input type="text" id="dictValue" placeholder="マスクしたい単語">
+          <select id="dictCategory">
+            <option value="companies">会社名</option>
+            <option value="persons">個人名</option>
+            <option value="projects">プロジェクト名</option>
+            <option value="custom">その他</option>
+          </select>
+          <button id="addDictBtn" class="btn primary">追加</button>
+        </div>
+        <div class="dict-list" id="dictList">
+          <p class="empty-message">登録された単語はありません</p>
+        </div>
+      </div>
+
+      <!-- 除外リスト -->
+      <div id="exclude-section" class="dict-section">
+        <p class="dict-description">誤検知を防ぐ単語を登録（挨拶、一般表現など）</p>
+        <div class="dict-add">
+          <input type="text" id="excludeValue" placeholder="除外したい単語">
+          <button id="addExcludeBtn" class="btn primary">追加</button>
+        </div>
+        <div class="dict-list" id="excludeList">
+          <p class="empty-message">登録された単語はありません</p>
+        </div>
       </div>
 
       <div class="dict-actions">

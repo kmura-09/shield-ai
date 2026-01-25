@@ -142,12 +142,56 @@ const PATTERNS = {
   }
 };
 
-// 敬称の除外リスト（一般名詞）
-const HONORIFIC_DENY_LIST = new Set([
-  'お客様', '皆様', '各位', '担当者様', '御担当者様', 'ご担当者様',
-  '関係者様', '責任者様', '代表者様', '管理者様', '窓口様',
-  '皆さん', '皆さま', 'みなさま', 'お客さん', 'お客さま'
+// 敬称の除外パターン（末尾一致でチェック）
+const HONORIFIC_DENY_SUFFIXES = [
+  // 役職・立場（敬称を除いた部分）
+  'お客', '皆', '担当者', '御担当者', 'ご担当者',
+  '関係者', '責任者', '代表者', '管理者', '窓口',
+  '担当', '店員', '係員', '運転手',
+  '先生', '社長', '部長', '課長', '係長', '主任',
+  // 挨拶・慣用表現（表記ゆれ含む）
+  'お疲れ', 'おつかれ', 'オツカレ',
+  'ご苦労', 'ごくろう',
+  'お世話', 'おせわ',
+  'お互い', 'おたがい',
+  'おかげ', 'お陰',
+  'お待ち', 'おまち',
+  'ご馳走', 'ごちそう',
+  'お気の毒', 'お生憎', 'ご愁傷',
+  // 神仏・慣用
+  '神', '仏', 'ご先祖', '閻魔', '王', '王妃', 'お姫', '殿',
+  'お地蔵', 'お稲荷',
+  // その他一般表現
+  'どちら', 'どなた',
+  'ご本人', 'ご家族', 'ご遺族', 'ご親族',
+  '奥', '旦那', 'お嬢', 'お坊ちゃ', '赤ちゃ'
+];
+
+// 敬称の完全一致除外リスト（特殊ケース）
+const HONORIFIC_DENY_EXACT = new Set([
+  '皆様', '各位', '皆さん', '皆さま', 'みなさま'
 ]);
+
+/**
+ * 敬称付き表現が除外対象かをチェック
+ */
+function isHonorificDenied(text, userExcludeList = []) {
+  // 完全一致チェック
+  if (HONORIFIC_DENY_EXACT.has(text)) return true;
+
+  // 敬称を除去して末尾チェック
+  const withoutHonorific = text.replace(/(様|さま|さん|氏)$/, '');
+  if (HONORIFIC_DENY_SUFFIXES.some(suffix => withoutHonorific.endsWith(suffix))) {
+    return true;
+  }
+
+  // ユーザー登録の除外リストチェック（部分一致）
+  if (userExcludeList.some(exclude => text.includes(exclude))) {
+    return true;
+  }
+
+  return false;
+}
 
 const VALIDATORS = {
   CREDIT_CARD: isValidCreditCard,
@@ -161,7 +205,7 @@ const VALIDATORS = {
 /**
  * テキストから機密情報を検出
  */
-function detectPII(text, customDictionary = []) {
+function detectPII(text, customDictionary = [], userExcludeList = []) {
   const detections = [];
 
   // パターンベース検出
@@ -182,7 +226,7 @@ function detectPII(text, customDictionary = []) {
       }
 
       // 敬称の除外チェック
-      if (type.startsWith('JP_NAME_') && HONORIFIC_DENY_LIST.has(matchedText)) {
+      if (type.startsWith('JP_NAME_') && isHonorificDenied(matchedText, userExcludeList)) {
         continue;
       }
 
